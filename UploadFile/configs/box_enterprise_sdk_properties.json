@@ -1,0 +1,12 @@
+{
+    "box": {
+        "clientID": "",
+        "clientSecret": "",
+        "appAuth": {
+            "keyID": "",
+            "privateKey": "",
+            "passphrase": "",
+            "enterprise": ""
+        }
+    }
+}
