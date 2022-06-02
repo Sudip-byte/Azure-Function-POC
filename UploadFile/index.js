@@ -28,16 +28,45 @@ module.exports = async function (context, req) {
         var uploadFolderId = req.body.uploadFolderId;
         var fileExtension = req.body.dataStreamBase64["$content-type"];
         var uploadFileName = req.body.uploadFileName + getFileExtension(fileExtension);
-        var dataStreamBase64 = req.body.dataStreamBase64["$content"];
+        var dataStreamBase64X = req.body.dataStreamBase64["$content"];
 
-        var buffer = new Buffer(dataStreamBase64, 'base64');
+        var buffer = new Buffer(dataStreamBase64X, 'base64');
 
-        var responseMessage = await uploadFile(uploadFolderId, uploadFileName, buffer);
-        console.log("** FILE ID UPLOADED ** : "+responseMessage.entries[0].id+" ** NAME ** : "+responseMessage.entries[0].name)
-        context.res = {
-            body: responseMessage
-        };
+        var itemsInFolder = await listItemsInFolder(uploadFolderId);
+        var entries = itemsInFolder.entries;
+
+        var fileExisitsAlreadyFlag = 0;
+        var existingFileId = "";
+
+        for (var i = 0; i < entries.length; i++) {
+            if (entries[i].type == 'file' && uploadFileName == entries[i].name) {
+                context.log(" ** FILE WITH SAME NAME EXISTS ** ");
+                fileExisitsAlreadyFlag = 1;
+                existingFileId = entries[i].id;
+                break;
+            }
+
+        }
+
+        if (fileExisitsAlreadyFlag == 1) {
+            var responseMessage = await uploadNewFileVersion(existingFileId, buffer);
+            console.log(" ** FILE ID ** " + responseMessage.entries[0].id + " ** NAME ** : " + responseMessage.entries[0].name)
+
+            context.res = {
+                body: responseMessage
+            };
+        }
+        else {
+            var responseMessage = await uploadFile(uploadFolderId, uploadFileName, buffer);
+            console.log("** FILE ID UPLOADED ** : " + responseMessage.entries[0].id + " ** NAME ** : " + responseMessage.entries[0].name)
+            context.res = {
+                body: responseMessage
+            };
+
+        }
+
     } catch (error) {
+        console.log(error)
         context.res = {
             body: error.body
         };
@@ -71,4 +100,27 @@ const uploadFile = (uploadFolderId, uploadFileName, dataStream) => {
 
     })
 
+}
+
+const uploadNewFileVersion = (uploadFolderId, dataStream) => {
+    return new Promise((resolve, reject) => {
+
+        serviceAccountClient.files.uploadNewFileVersion(uploadFolderId, dataStream)
+            .then(file => {
+                resolve(file)
+            })
+            .catch(error => reject(error));
+
+    })
+
+}
+
+const listItemsInFolder = (folderId) => {
+    return new Promise((resolve, reject) => {
+
+        serviceAccountClient.folders.getItems(folderId, null)
+            .then(items => resolve(items))
+            .catch(error => reject(error));
+
+    })
 }

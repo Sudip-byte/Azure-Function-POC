@@ -32,19 +32,19 @@ module.exports = async function (context, req) {
 
         var itemsInFolder = await listItemsInFolder(folderId);
         var entries = itemsInFolder.entries;
-        var dataStreamsArray = [];
+        var fileContentArrayOfJson = [];
 
         for (var i = 0; i < entries.length; i++) {
 
             if (entries[i].type == 'file' && filesToBeDownloaded.includes(entries[i].name)) {
                 console.log("** " + itemsInFolder.entries[i].id);
-                dataStreamsArray.push(await downloadFile(itemsInFolder.entries[i].id))
+                fileContentArrayOfJson.push(await downloadFile(itemsInFolder.entries[i].id))
             }
 
         }
 
         context.res = {
-            body: dataStreamsArray
+            body: fileContentArrayOfJson
         };
     } catch (error) {
         context.res = {
@@ -55,6 +55,9 @@ module.exports = async function (context, req) {
 }
 
 const downloadFile = (fileId) => {
+
+    var fileContentJson = {};
+
     return new Promise((resolve, reject) => {
 
         serviceAccountClient.files.getReadStream(fileId, null)
@@ -69,7 +72,11 @@ const downloadFile = (fileId) => {
 
                 stream.on("end", () => {
                     finalData = Buffer.concat(bufs)
-                    resolve(finalData);
+
+                    fileContentJson["$content-type"] = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+                    fileContentJson["$content"] = new Buffer.from(finalData).toString('base64');
+
+                    resolve(fileContentJson);
                 })
 
             })
