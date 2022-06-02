@@ -47,8 +47,9 @@ module.exports = async function (context, req) {
             body: fileContentArrayOfJson
         };
     } catch (error) {
+        console.log(" ** ERROR :: ** ",error);
         context.res = {
-            body: error.body
+            body: error
         };
 
     }
